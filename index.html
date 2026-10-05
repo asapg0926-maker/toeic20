@@ -95,6 +95,7 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-off
 .card{position:relative;min-height:290px;padding:26px 22px 22px;border-radius:24px;background:var(--bg);border:1.5px solid var(--line);box-shadow:0 14px 30px -22px rgba(60,30,10,.35);display:flex;flex-direction:column;gap:14px;user-select:none}
 .card .tag{align-self:flex-start;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--surface);color:var(--muted)}
 .card .tag.rv{background:#fde8e5;color:var(--bad)}
+.card .tag.mm{background:#eef0ff;color:#4a55b5}
 .card .tag.co{background:#e8f4ee;color:var(--ok)}
 .word{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15;word-break:break-word;display:flex;align-items:center;gap:10px}
 .word.co{font-size:26px}
@@ -146,6 +147,20 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-off
 .seg button{flex:1;min-height:42px;border-radius:10px;font-family:var(--f-num);font-weight:700;color:var(--muted)}
 .seg button.on{background:#fff;color:var(--accent-deep);box-shadow:0 2px 8px -4px rgba(0,0,0,.25)}
 .pos-line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:8px}
+.memo{margin-top:22px;padding:16px;border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;gap:8px}
+.memo-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px}
+.memo-h b{font-size:16px}.memo-h span{font-size:12px}
+.memo input{width:100%;min-height:46px;border-radius:12px;border:1.5px solid var(--line);padding:0 14px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg)}
+.memo input:focus{outline:none;border-color:var(--accent)}
+.memo-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.memo-row span{font-size:12px;min-width:0}
+.memo-row .btn{min-width:84px}
+.mitem{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface);font-size:14px}
+.mitem .mw{font-weight:700;flex:none;max-width:45%;word-break:break-word}
+.mitem .mm{color:var(--muted);flex:1;min-width:0;word-break:break-word}
+.mitem .md{font-size:11px;color:var(--muted);flex:none}
+.mitem button{flex:none;width:28px;height:28px;border-radius:50%;color:var(--muted);font-size:16px;line-height:1}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .fallback{padding:18px;border-radius:20px;background:var(--surface)}
 .fallback p{margin:0 0 10px;font-size:14px;color:var(--muted)}
 .fallback .big{font-family:var(--f-num);font-size:28px;font-weight:800}
@@ -227,6 +242,15 @@ textarea{width:100%;min-height:90px;border-radius:12px;border:1px solid var(--li
     </div>
     <div class="seg" id="l-speed"><button data-r="0.75">0.75×</button><button data-r="1" class="on">1×</button><button data-r="1.25">1.25×</button></div>
     <div class="hint">되감기·반복·생각하는 시간도 공부 시간에 포함돼요. 일시정지하면 타이머도 멈춰요.</div>
+    <div class="memo">
+      <div class="memo-h"><b>단어 메모</b><span class="muted">다음 날 단어 카드 맨 앞에 들어가요</span></div>
+      <label class="sr" for="mw">영어 단어</label>
+      <input id="mw" type="text" placeholder="들은 영어 단어나 표현" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next">
+      <label class="sr" for="mm">뜻</label>
+      <input id="mm" type="text" placeholder="뜻은 자동으로 채워져요 (고칠 수 있어요)" enterkeyhint="done">
+      <div class="memo-row"><span class="muted" id="m-status"></span><button class="btn pri sm" id="m-add">추가</button></div>
+      <div class="list" id="m-list"></div>
+    </div>
   </section>
 </div>
 
@@ -240,7 +264,7 @@ const VOCA=[{"d":1,"w":[["various",[["형","여러 가지의, 각양 각색의"]
 'use strict';
 const EXAM = new Date(2026, 10, 15);
 const VIDEOS = ['UYqlz-HJscQ', 's2OF2j-Qa2A'];
-const LISTEN_SEC = 600, LEARN_SEC = 300, REVIEW_SEC = 60;
+const LISTEN_SEC = 600, LEARN_SEC = 360, TEST_SEC = 180, REVIEW_SEC = 60;
 const POSN = {명:'명', 동:'동', 형:'형', 부:'부', 전:'전', 접:'접', phr:'phr', 대:'대'};
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2, '0');
@@ -251,7 +275,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 /* ---------------- state & storage ---------------- */
 const KEY = 'toeic20-v1';
-const fresh = () => ({ v: 1, u: 0, vc: 0, vlast: '', h: {}, rv: [], vs: null, lv: { i: 0, t: 0 }, lt: { d: '', s: 0 }, rate: 1 });
+const fresh = () => ({ v: 1, u: 0, vc: 0, vlast: '', h: {}, rv: [], vs: null, lv: { i: 0, t: 0 }, lt: { d: '', s: 0 }, rate: 1, memo: [] });
 let S = fresh();
 let dbDoc = null, dbTimer = null;
 function readLocal() { try { const t = localStorage.getItem(KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
@@ -283,7 +307,8 @@ async function connectCloud() {
 /* ---------------- data helpers ---------------- */
 const dayOf = n => ((n - 1) % 30) + 1;           // session n -> Day number
 const round = n => Math.floor((n - 1) / 30) + 1;
-function item(key) {                              // "3:w5" or "3:c2"
+function item(key) {                              // "3:w5", "3:c2" or "M:<id>"
+  if (key.startsWith('M:')) { const m = (S.memo || []).find(x => 'M:' + x.id === key) || { w: '(삭제된 메모)', s: [['', '']] }; return { key, day: 0, type: 'm', word: m.w, senses: m.s }; }
   const [d, r] = key.split(':'); const D = VOCA[+d - 1]; const i = +r.slice(1);
   if (r[0] === 'w') { const w = D.w[i]; return { key, day: +d, type: 'w', word: w[0], senses: w[1] }; }
   const c = D.c[i]; return { key, day: +d, type: 'c', word: c[0], senses: [['', c[1]]] };
@@ -342,7 +367,7 @@ function renderHome() {
   $('#dday').textContent = dd > 0 ? 'D-' + dd : dd === 0 ? 'D-DAY' : 'D+' + (-dd);
   const st = streak(), th = S.h[today()] || {};
   $('#streak').innerHTML = st + '<span>일 연속</span>';
-  $('#streak-msg').textContent = th.v && th.l ? '오늘 20분 완료! 내일도 이어가요' : th.v || th.l ? '나머지 10분만 하면 오늘 완료예요' : st ? '오늘도 해서 ' + (st + 1) + '일로 늘려요' : '오늘 첫 공부를 시작해 보세요';
+  $('#streak-msg').textContent = th.v && th.l ? '오늘 20분 완료! 내일도 이어가요' : th.v || th.l ? (th.v ? '듣기 10분' : '단어 10분') + '만 하면 오늘 완료예요' : st ? '오늘도 해서 ' + (st + 1) + '일로 늘려요' : '오늘 첫 공부를 시작해 보세요';
   const n = curSession(), d = dayOf(n), r = round(n);
   const vb = $('#go-vocab'); vb.classList.toggle('done', !!th.v);
   $('#vocab-sub').innerHTML = th.v ? '✓ Day ' + d + ' 완료<br>눌러서 다시 보기' : (r > 1 ? r + '회독 · ' : '') + 'Day ' + d + '<br>기출 25 + 연어 5';
@@ -384,13 +409,14 @@ function buildSession() {
   // spread review words evenly through today's cards
   const cards = todays.slice(0, 25); const colls = todays.slice(25);
   shuffle(due).forEach((k, i) => cards.splice(Math.min(cards.length, Math.round((i + 1) * (cards.length + 1) / (due.length + 1))), 0, k));
-  return { date: today(), n, day: d, step: n > 1 ? 1 : 2, idx: 0, cards: cards.concat(colls), due, res: {}, qa: [null, null, null], rev: false };
+  const memo = (S.memo || []).filter(m => !m.used && m.d < today()).map(m => 'M:' + m.id);
+  return { date: today(), n, day: d, step: n > 1 ? 1 : 2, idx: 0, cards: memo.concat(cards, colls), memo, due, res: {}, again: [], qa: [null, null, null], rev: false };
 }
 function openVocab() {
   unlockAudio();
   if (vocabDoneToday()) {           // already done: free review of today's Day
     const d = dayOf(S.vc);
-    V = { date: today(), n: S.vc, day: d, step: 2, idx: 0, cards: dayKeys(d), due: [], res: {}, qa: [null, null, null], rev: true };
+    V = { date: today(), n: S.vc, day: d, step: 2, idx: 0, cards: dayKeys(d), memo: [], due: [], res: {}, again: [], qa: [null, null, null], rev: true };
   } else {
     if (!S.vs || S.vs.date !== today() || S.vs.n !== S.vc + 1) { S.vs = buildSession(); save(); }
     V = S.vs;
@@ -415,7 +441,8 @@ function senseHtml(it) {
 }
 function cardHtml(it, opts) {
   const isRv = V.due.includes(it.key);
-  const tag = isRv ? '<span class="tag rv">복습 · Day ' + it.day + '</span>' : it.type === 'c' ? '<span class="tag co">기출 Collocation</span>' : '<span class="tag">기출 단어</span>';
+  const again = opts.again ? '<span class="tag rv">다시 보기</span>' : '';
+  const tag = again || (isRv ? '<span class="tag rv">복습 · ' + (it.type === 'm' ? '메모 단어' : 'Day ' + it.day) + '</span>' : it.type === 'm' ? '<span class="tag mm">듣기 메모 단어</span>' : it.type === 'c' ? '<span class="tag co">기출 Collocation</span>' : '<span class="tag">기출 단어</span>');
   return '<div class="card" id="card" role="button" tabindex="0" aria-label="눌러서 발음 듣기">' + tag +
     '<div class="word' + (it.type === 'c' ? ' co' : '') + '"><span>' + esc(it.word) + '</span><span class="spk" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="#e9630a"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="#e9630a" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></div>' +
     (opts.hide ? '<div class="cover" id="reveal">뜻 가림 · 떠올려 본 뒤 눌러서 확인</div>' : senseHtml(it)) +
@@ -436,7 +463,7 @@ function renderVocab(fresh) {
   if (V.rev) return renderLearn(body, fresh, true);
   if (V.step === 1) return renderQuick(body, fresh);
   if (V.step === 2) return renderLearn(body, fresh, false);
-  if (V.step === 3) return renderTest(body);
+  if (V.step === 3) return renderTest(body, fresh);
   if (V.step === 4) return renderQuiz(body);
   if (V.step === 5) return renderDone(body);
 }
@@ -458,43 +485,50 @@ function renderQuick(body, fresh) {
 function renderLearn(body, fresh, rev) {
   const keys = V.cards, i = Math.min(V.idx, keys.length - 1), it = item(keys[i]);
   const nRv = V.due.length;
-  body.innerHTML = '<div class="phase"><b>' + (rev ? '오늘 단어 다시 보기' : '② 오늘 단어 외우기') + (nRv ? ' <span class="muted">복습 ' + nRv + '개 포함</span>' : '') + '</b>' + (rev ? '' : '<span class="timer" id="v-timer">5:00</span>') + '</div>' +
+  body.innerHTML = '<div class="phase"><b>' + (rev ? '오늘 단어 다시 보기' : '② 오늘 단어 외우기') + ((nRv || (V.memo || []).length) ? ' <span class="muted">' + [V.memo && V.memo.length ? '메모 ' + V.memo.length : '', nRv ? '복습 ' + nRv : ''].filter(Boolean).join(' · ') + '개 포함</span>' : '') + '</b>' + (rev ? '' : '<span class="timer" id="v-timer">' + mmss(LEARN_SEC) + '</span>') + '</div>' +
     cardHtml(it, { count: (i + 1) + ' / ' + keys.length }) +
     '<div class="row"><button class="btn" id="l-prev"' + (i === 0 ? ' disabled' : '') + '>이전</button><button class="btn' + (i === keys.length - 1 ? ' pri' : '') + '" id="l-next">' + (i === keys.length - 1 ? (rev ? '처음으로' : '셀프 테스트') : '다음') + '</button></div>' +
     (rev ? '' : '<div class="row"><button class="btn pri" id="l-test">셀프 테스트 시작</button></div>') +
-    '<div class="hint">카드를 누르면 발음이 나와요 · 좌우로 넘길 수 있어요</div>' + (V.timeUp && !rev ? '<div class="note">5분이 끝났어요. 준비되면 셀프 테스트로 넘어가세요.</div>' : '');
+    '<div class="hint">카드를 누르면 발음이 나와요 · 좌우로 넘길 수 있어요</div>' + (V.timeUp && !rev ? '<div class="note">6분이 끝났어요. 준비되면 셀프 테스트로 넘어가세요.</div>' : '');
   const go = dir => { let j = V.idx + dir; if (j < 0) return; if (j >= keys.length) { if (rev) j = 0; else return setStep(3); } V.idx = j; if (!rev) save(); renderLearn(body, false, rev); };
   bindCard(it, go);
   $('#l-prev').onclick = () => go(-1); $('#l-next').onclick = () => go(1);
   if (!rev) {
     $('#l-test').onclick = () => setStep(3);
-    if (fresh) { V.timeUp = false; startStepTimer(LEARN_SEC, () => { chime(); V.timeUp = true; toast('5분 끝! 셀프 테스트를 시작해요'); renderLearn(body, false, false); }); }
+    if (fresh) { V.timeUp = false; startStepTimer(LEARN_SEC, () => { chime(); V.timeUp = true; toast('6분 끝! 셀프 테스트를 시작해요'); renderLearn(body, false, false); }); }
     else { const el = $('#v-timer'); const left = (stepEnd - Date.now()) / 1000; if (el) { el.textContent = left > 0 ? mmss(Math.ceil(left)) : '완료'; if (left <= 0) el.classList.add('over'); } }
   }
 }
 /* ③ self test */
-function renderTest(body) {
-  stopStepTimer();
-  const keys = V.cards, i = V.idx;
-  if (i >= keys.length) return renderTestSummary(body);
-  const it = item(keys[i]);
-  body.innerHTML = '<div class="phase"><b>③ 셀프 테스트</b><span class="muted num">' + Object.values(V.res).filter(x => x === 0).length + '개 몰랐음</span></div>' +
-    cardHtml(it, { count: (i + 1) + ' / ' + keys.length, hide: !V.shown }) +
-    (V.shown ? '<div class="row"><button class="btn no" id="t-no">몰랐음</button><button class="btn ok" id="t-yes">맞혔음</button></div>'
-             : '<div class="row"><button class="btn pri" id="t-show">뜻 보기</button></div>');
+function renderTest(body, fresh) {
+  V.again = V.again || [];
+  const keys = V.cards.concat(V.again), i = V.idx, nMain = V.cards.length;
+  if (fresh) { stopStepTimer(); stepEnd = Date.now() + TEST_SEC * 1000; }
+  if (i >= keys.length) { stopStepTimer(); return renderTestSummary(body); }
+  const it = item(keys[i]), isAgain = i >= nMain;
+  const leftNow = (stepEnd - Date.now()) / 1000;
+  body.innerHTML = '<div class="phase"><b>③ 셀프 테스트 <span class="muted num">' + Object.values(V.res).filter(x => x === 0).length + '개 다시보기</span></b><span class="timer' + (stepTimer || leftNow > 0 ? '' : ' over') + '" id="v-timer">' + (leftNow > 0 ? mmss(Math.ceil(leftNow)) : '완료') + '</span></div>' +
+    cardHtml(it, { count: isAgain ? '다시 보기 ' + (i - nMain + 1) + ' / ' + V.again.length : (i + 1) + ' / ' + nMain, hide: !V.shown, again: isAgain }) +
+    (V.shown ? '<div class="row"><button class="btn no" id="t-no">다시보기</button><button class="btn ok" id="t-yes">맞혔음</button></div>'
+             : '<div class="row"><button class="btn pri" id="t-show">뜻 보기</button></div>') +
+    '<div class="hint">다시보기한 단어는 테스트 끝에 한 번 더 나와요</div>';
   bindCard(it, null);
-  const answer = ok => { V.res[it.key] = ok ? 1 : 0; V.idx++; V.shown = false; save(); renderTest(body); };
+  if (fresh) startStepTimer(TEST_SEC, () => { chime(); toast('3분 끝! 남은 단어는 마저 풀어도 돼요'); });
+  const answer = ok => {
+    if (!isAgain) { V.res[it.key] = ok ? 1 : 0; if (!ok && !V.again.includes(it.key)) V.again.push(it.key); }
+    V.idx++; V.shown = false; save(); renderTest(body, false);
+  };
   if (V.shown) { $('#t-no').onclick = () => answer(false); $('#t-yes').onclick = () => answer(true); }
-  else { const rv = () => { V.shown = true; renderTest(body); }; $('#t-show').onclick = rv; $('#reveal').onclick = rv; }
+  else { const rv = () => { V.shown = true; renderTest(body, false); }; $('#t-show').onclick = rv; $('#reveal').onclick = rv; }
 }
 function renderTestSummary(body) {
   const wrong = V.cards.filter(k => V.res[k] === 0);
   body.innerHTML = '<div class="phase"><b>③ 셀프 테스트 결과</b><span class="num">' + (V.cards.length - wrong.length) + ' / ' + V.cards.length + '</span></div>' +
-    (wrong.length ? '<div class="note">몰랐던 ' + wrong.length + '개는 공부한 날 기준 3일 뒤, 7일 뒤에 오늘 단어에 섞여서 다시 나와요.</div>' +
+    (wrong.length ? '<div class="note">다시보기한 ' + wrong.length + '개는 공부한 날 기준 3일 뒤, 7일 뒤에 오늘 단어에 섞여서 다시 나와요.</div>' +
       '<div class="list">' + wrong.map(k => { const it = item(k); return '<div class="li"><b>' + esc(it.word) + '</b><span>' + esc(it.senses.map(s => s[1]).join(' / ')) + '</span></div>'; }).join('') + '</div>'
       : '<div class="note ok">전부 맞혔어요!</div>') +
     '<div class="row"><button class="btn" id="t-again">다시 풀기</button><button class="btn pri" id="t-quiz">기출 변형 문제</button></div>';
-  $('#t-again').onclick = () => { V.res = {}; V.idx = 0; V.shown = false; save(); renderTest(body); };
+  $('#t-again').onclick = () => { V.res = {}; V.again = []; V.idx = 0; V.shown = false; save(); renderTest(body, true); };
   $('#t-quiz').onclick = () => setStep(4);
 }
 /* ④ quiz */
@@ -518,6 +552,7 @@ function finishVocab() {
   const n = V.n;
   S.rv = S.rv.filter(x => x.due > n);                      // consume today's due reviews
   V.cards.forEach(k => { if (V.res[k] === 0) S.rv.push({ k, due: n + 3 }, { k, due: n + 7 }); });
+  (V.memo || []).forEach(k => { const m = (S.memo || []).find(x => 'M:' + x.id === k); if (m) m.used = n; });
   S.vc = n; S.vlast = today(); mark('v');
   V.step = 5; S.vs = V; save();
   renderVocab(false);
@@ -526,7 +561,7 @@ function renderDone(body) {
   const th = S.h[today()] || {};
   const correct = V.qa.filter((a, n) => a === VOCA[V.day - 1].q[n][2]).length;
   body.innerHTML = '<div class="card" style="align-items:center;text-align:center;justify-content:center;gap:8px"><div style="font-size:44px">🎉</div><div class="word" style="justify-content:center">Day ' + V.day + ' 완료</div>' +
-    '<p class="muted" style="margin:0">문제 ' + correct + '/3 · 몰랐던 단어 ' + V.cards.filter(k => V.res[k] === 0).length + '개는 복습에 추가했어요</p></div>' +
+    '<p class="muted" style="margin:0">문제 ' + correct + '/3 · 다시보기 단어 ' + V.cards.filter(k => V.res[k] === 0).length + '개는 복습에 추가했어요</p></div>' +
     '<div class="row"><button class="btn" id="d-home">홈으로</button>' + (th.l ? '' : '<button class="btn pri" id="d-listen">듣기 10분 하러 가기</button>') + '</div>';
   $('#d-home').onclick = () => { show('home'); renderHome(); };
   const dl = $('#d-listen'); if (dl) dl.onclick = openListen;
@@ -650,7 +685,7 @@ function openListen() {
   else if (ytReady) { try { if (player.getVideoData().video_id !== VIDEOS[S.lv.i]) player.cueVideoById(VIDEOS[S.lv.i], S.lv.t); } catch (e) {} }
   if (ytFailed) renderFallback();
   clearInterval(tickT); lastTick = Date.now(); tickT = setInterval(tick, 250);
-  renderListenInfo();
+  renderListenInfo(); renderMemo();
 }
 function leaveListen() {
   if (running) setRunning(false);
@@ -659,6 +694,71 @@ function leaveListen() {
 $('#go-listen').onclick = openListen;
 document.addEventListener('visibilitychange', () => { if (document.hidden) { if (ytReady && running) { try { S.lv.t = player.getCurrentTime(); } catch (e) {} } save(); } });
 window.addEventListener('pagehide', save);
+
+/* ---------------- listening memo ---------------- */
+const POSMAP = { noun: '명', verb: '동', adjective: '형', adverb: '부', preposition: '전', conjunction: '접', pronoun: '대', interjection: '감', abbreviation: '약' };
+const fmtSenses = ss => ss.map(x => (x[0] ? x[0] + '. ' : '') + x[1]).join(' / ');
+function parseSenses(t) {
+  return t.split(/\s*\/\s*/).map(p => p.trim()).filter(Boolean).map(p => { const m = p.match(/^(명|동|형|부|전|접|대|감|약|phr)\.\s*(.*)$/); return m ? [m[1], m[2]] : ['', p]; });
+}
+async function translateWord(w) {
+  const q = encodeURIComponent(w);
+  try {
+    const r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&dt=bd&q=' + q);
+    const j = await r.json();
+    if (Array.isArray(j[1]) && j[1].length) return j[1].slice(0, 3).map(e => [POSMAP[e[0]] || '', (e[1] || []).slice(0, 4).join(', ')]).filter(x => x[1]);
+    const t = (j[0] || []).map(x => x[0]).join('').trim();
+    if (t) return [['', t]];
+  } catch (e) {}
+  try {
+    const r = await fetch('https://api.mymemory.translated.net/get?langpair=en|ko&q=' + q);
+    const j = await r.json(); const t = j && j.responseData && j.responseData.translatedText;
+    if (t) return [['', t]];
+  } catch (e) {}
+  return null;
+}
+let mmDirty = false, trTimer = null, trSeq = 0, trPending = null;
+function memoStatus(t) { $('#m-status').textContent = t || ''; }
+function lookup() {
+  const w = $('#mw').value.trim(); clearTimeout(trTimer);
+  if (!w || mmDirty) { if (!w) memoStatus(''); return; }
+  trTimer = setTimeout(() => {
+    const seq = ++trSeq; memoStatus('뜻 찾는 중…');
+    trPending = translateWord(w).then(ss => {
+      if (seq !== trSeq) return;
+      if (ss && !mmDirty) { $('#mm').value = fmtSenses(ss); memoStatus('자동 번역 · 틀리면 고쳐 주세요'); }
+      else if (!ss) memoStatus('뜻을 못 찾았어요. 직접 적어 주세요');
+    });
+  }, 600);
+}
+$('#mw').addEventListener('input', () => { if (!$('#mm').value) mmDirty = false; lookup(); });
+$('#mw').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#mm').focus(); } });
+$('#mm').addEventListener('input', () => { mmDirty = !!$('#mm').value; });
+$('#mm').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addMemo(); } });
+async function addMemo() {
+  const w = $('#mw').value.trim().replace(/\s+/g, ' ');
+  if (!w) { $('#mw').focus(); return; }
+  if (!$('#mm').value.trim() && !mmDirty) {     // wait for the lookup that is in flight
+    clearTimeout(trTimer); memoStatus('뜻 찾는 중…');
+    const ss = await translateWord(w); if (ss) $('#mm').value = fmtSenses(ss);
+  }
+  const mean = $('#mm').value.trim();
+  if (!mean) { memoStatus('뜻을 적어 주세요'); $('#mm').focus(); return; }
+  S.memo = S.memo || [];
+  if (S.memo.some(m => !m.used && m.w.toLowerCase() === w.toLowerCase())) { toast('이미 메모한 단어예요'); return; }
+  S.memo.push({ id: Date.now().toString(36), w, s: parseSenses(mean), d: today() });
+  save(); $('#mw').value = ''; $('#mm').value = ''; mmDirty = false; trSeq++; memoStatus('');
+  toast('메모했어요 · 다음 날 단어에 들어가요'); renderMemo(); $('#mw').focus();
+}
+$('#m-add').onclick = addMemo;
+function renderMemo() {
+  const list = (S.memo || []).filter(m => !m.used).slice().reverse();
+  const t = today();
+  $('#m-list').innerHTML = list.length ? list.map(m => '<div class="mitem"><span class="mw" data-say="' + esc(m.w) + '">' + esc(m.w) + '</span><span class="mm">' + esc(fmtSenses(m.s)) + '</span><span class="md">' + (m.d === t ? '오늘' : +m.d.slice(5, 7) + '/' + +m.d.slice(8)) + '</span><button data-del="' + m.id + '" aria-label="' + esc(m.w) + ' 삭제">×</button></div>').join('')
+    : '<div class="muted" style="font-size:13px">아직 메모한 단어가 없어요.</div>';
+  $('#m-list').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { S.memo = S.memo.filter(m => m.id !== b.dataset.del); save(); renderMemo(); });
+  $('#m-list').querySelectorAll('[data-say]').forEach(b => b.onclick = () => speak(b.dataset.say));
+}
 
 /* ---------------- backup ---------------- */
 $('#open-backup').onclick = () => {
